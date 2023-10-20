@@ -74,7 +74,9 @@ public class AccountSelectDialog extends JDialog {
         accountPane.setAlignmentX(CENTER_ALIGNMENT);
 
         loginButton.setFont(loginButton.getFont().deriveFont(Font.BOLD));
-        //loginButton.setMargin(new Insets(0, 10, 0, 10));
+        loginButton.setFont(loginButton.getFont().deriveFont(16f));
+
+        addOfflineButton.setFont(loginButton.getFont().deriveFont(16f));
 
         //Start Buttons
         buttonsPanel.setBorder(BorderFactory.createEmptyBorder(26, 13, 13, 13));
@@ -87,11 +89,9 @@ public class AccountSelectDialog extends JDialog {
 
         //Login Buttons
         JPanel loginButtonsRow = new JPanel(new BorderLayout(0, 4));
-        //addCrackedButton.setAlignmentX(CENTER_ALIGNMENT);
         addOfflineButton.setAlignmentX(CENTER_ALIGNMENT);
         addMicrosoftButton.setAlignmentX(CENTER_ALIGNMENT);
         removeSelected.setAlignmentX(CENTER_ALIGNMENT);
-        //loginButtonsRow.add(addCrackedButton, BorderLayout.NORTH);
         loginButtonsRow.add(addOfflineButton, BorderLayout.NORTH);
         loginButtonsRow.add(addMicrosoftButton, BorderLayout.CENTER);
         loginButtonsRow.add(removeSelected, BorderLayout.SOUTH);

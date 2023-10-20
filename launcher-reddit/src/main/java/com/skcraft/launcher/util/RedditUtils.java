@@ -15,7 +15,7 @@ import java.util.List;
  */
 public class RedditUtils {
 
-    private static final String API = "https://reddit.com/u/%s.json?count=25&after=%s";
+    private static final String API = "https://reddit.com/r/%s.json?count=25&after=%s";
 
     public static List<String> getBackgrounds(final String subreddit, final int count) {
         String after = "";

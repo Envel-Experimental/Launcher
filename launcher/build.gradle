@@ -5,6 +5,10 @@ plugins {
     id 'io.freefair.lombok'
 }
 
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
 application {
     mainClassName = "com.skcraft.launcher.Launcher"
 }
