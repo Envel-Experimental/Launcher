@@ -184,7 +184,8 @@ public class AccountSelectDialog extends JDialog {
         setResult(new OfflineSession(session.getUsername()));
 
         if (accountList.getSelectedValue() != null) {
-            new OfflineSession(session.getUsername());
+            Session offlineSession = new OfflineSession(session.getUsername());
+            setResult(offlineSession);
         }
         else {
             LoginService loginService = null;
@@ -220,7 +221,12 @@ public class AccountSelectDialog extends JDialog {
 
         @Override
         public Session call() throws Exception {
-            return service.restore(session);
+            if (service != null) {
+                return service.restore(session);
+            } else {
+                // Если LoginService равен null, вернуть OfflineSession
+                return new OfflineSession(session.getUsername());
+            }
         }
 
         @Override

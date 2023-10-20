@@ -797,7 +797,7 @@ public class PackManagerController {
                 return;
             }
 
-            session = new OfflineSession("Player");
+            session = new OfflineSession("Player123");
         }
 
         String version = generateVersionFromDate();
