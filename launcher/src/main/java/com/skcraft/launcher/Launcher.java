@@ -98,7 +98,7 @@ public final class Launcher {
      * @throws java.io.IOException on load error
      */
     public Launcher(@NonNull File baseDir, @NonNull File configDir) throws IOException {
-        SharedLocale.loadBundle("com.skcraft.launcher.lang.Launcher", Locale.getDefault());
+        SharedLocale.loadBundle("com.skcraft.launcher.lang.Launcher", new Locale("ru"));
 
         this.baseDir = baseDir.getAbsoluteFile();
         this.properties = LauncherUtils.loadProperties(Launcher.class, "launcher.properties", "com.skcraft.launcher.propertiesFile");
