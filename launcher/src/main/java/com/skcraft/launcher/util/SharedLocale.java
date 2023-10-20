@@ -9,9 +9,14 @@ package com.skcraft.launcher.util;
 import lombok.NonNull;
 import lombok.extern.java.Log;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.PropertyResourceBundle;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 
@@ -95,8 +100,25 @@ public class SharedLocale {
     public static boolean loadBundle(@NonNull String baseName, @NonNull Locale locale) {
         try {
             SharedLocale.locale = locale;
-            bundle = ResourceBundle.getBundle(baseName, locale,
-                    SharedLocale.class.getClassLoader(), new LocaleEncodingControl());
+
+            ResourceBundle.Control control = new ResourceBundle.Control() {
+                @Override
+                public ResourceBundle newBundle(String baseName, Locale locale, String format, ClassLoader loader, boolean reload)
+                        throws IllegalAccessException, InstantiationException, IOException {
+                    String bundleName = toBundleName(baseName, locale);
+                    String resourceName = toResourceName(bundleName, "properties");
+                    try (InputStream is = loader.getResourceAsStream(resourceName)) {
+                        if (is != null) {
+                            try (InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+                                return new PropertyResourceBundle(reader);
+                            }
+                        }
+                    }
+                    return super.newBundle(baseName, locale, format, loader, reload);
+                }
+            };
+
+            bundle = ResourceBundle.getBundle(baseName, locale, control);
             return true;
         } catch (MissingResourceException e) {
             log.log(Level.SEVERE, "Failed to load resource bundle", e);
