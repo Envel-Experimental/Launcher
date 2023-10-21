@@ -9,6 +9,7 @@ package com.skcraft.launcher;
 import com.skcraft.launcher.dialog.LauncherFrame;
 import com.skcraft.launcher.swing.*;
 import com.skcraft.launcher.util.Environment;
+import com.skcraft.launcher.util.MultiLineTableCellRenderer;
 import com.skcraft.launcher.util.Platform;
 import lombok.NonNull;
 
@@ -67,10 +68,21 @@ public class RedditLauncherFrame extends LauncherFrame {
         instancesTable.setSelectionBackground(Theme.primary);
         instancesTable.setSelectionForeground(Theme.primaryText);
         instancesTable.setForeground(Theme.secondaryText);
-        instancesTable.setFont(new Font(instancesTable.getFont().getName(), Font.PLAIN, Theme.secondarySize));
+
+        Font boldFont = new Font(instancesTable.getFont().getName(), Font.BOLD, 16);
+        instancesTable.setFont(boldFont);
         instancesTable.setOpaque(false);
+
+        instancesTable.setRowHeight(65);
+        instancesTable.getColumnModel().getColumn(1).setPreferredWidth(200);
+        MultiLineTableCellRenderer renderer = new MultiLineTableCellRenderer();
+        renderer.setFont(boldFont);
+        instancesTable.getColumnModel().getColumn(1).setCellRenderer(renderer);
+
         redditInit();
     }
+
+
 
     private void redditInit() {
         RedditBackgroundPanel root = new RedditBackgroundPanel(Theme.subreddit, Theme.postCount, Theme.randomise, Theme.interval, Theme.fade);
