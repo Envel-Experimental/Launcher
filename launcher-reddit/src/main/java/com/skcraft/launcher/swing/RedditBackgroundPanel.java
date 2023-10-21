@@ -1,23 +1,26 @@
 package com.skcraft.launcher.swing;
 
-import com.skcraft.launcher.util.RedditUtils;
 import lombok.extern.java.Log;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
+import javax.swing.Timer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
+import java.net.JarURLConnection;
 import java.net.URL;
-import java.net.URLConnection;
-import java.util.Collections;
+import java.net.URLDecoder;
+import java.util.*;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 /**
  * @author dags <dags@dags.me>
@@ -30,20 +33,17 @@ public class RedditBackgroundPanel extends JPanel implements Runnable, ActionLis
     private final AtomicReference<ImageFader> reference;
     private final AtomicBoolean showing;
     private final AtomicBoolean repaint;
-    private final String subreddit;
-    private final int postCount;
     private final boolean random;
     private final Timer timer;
     private final long delay;
     private final long fade;
+    private final String directoryPath = "com/skcraft/launcher/media_embed/";
 
     public RedditBackgroundPanel(String subreddit, int postCount, boolean randomise, long interval, long fade) {
         this.reference = new AtomicReference<ImageFader>(DEFAULT);
         this.showing = new AtomicBoolean(true);
         this.repaint = new AtomicBoolean(true);
         this.timer = new Timer(200, this);
-        this.subreddit = subreddit;
-        this.postCount = postCount;
         this.random = randomise;
         this.delay = interval;
         this.fade = fade;
@@ -83,19 +83,22 @@ public class RedditBackgroundPanel extends JPanel implements Runnable, ActionLis
 
     @Override
     public void run() {
-        log.info(String.format("Fetching backgrounds from subreddit: %s", subreddit));
-
         int index = 0;
-        List<String> targets = RedditUtils.getBackgrounds(subreddit, postCount);
-        log.info(String.format("Found %s/%s backgrounds for subreddit: %s", targets.size(), postCount, subreddit));
+
+        String directoryPath = "com/skcraft/launcher/media_embed/";  // Relative path to the directory
+
+        List<String> targets = loadImagesFromDirectory(directoryPath);
+
         if (random) {
             Collections.shuffle(targets);
         }
 
-        // async
+        System.out.println("Total images found: " + targets.size());
+
         while (showing.get() && index < targets.size()) {
             try {
                 String next = targets.get(index);
+                System.out.println("Displaying image: " + next);
                 ImageFader image = getImage(next);
 
                 if (image != null) {
@@ -112,30 +115,70 @@ public class RedditBackgroundPanel extends JPanel implements Runnable, ActionLis
                 e.printStackTrace();
             }
         }
-
-        log.info("Stopping async background image loader thread...");
     }
 
-    private Component self() {
-        return SwingUtilities.getWindowAncestor(this);
+    private List<String> loadImagesFromDirectory(String directoryPath) {
+        List<String> targets = new ArrayList<>();
+
+        // Use the ClassLoader to load resources from the directory
+        ClassLoader classLoader = RedditBackgroundPanel.class.getClassLoader();
+        URL directoryURL = classLoader.getResource(directoryPath);
+
+        if (directoryURL != null) {
+            if (directoryURL.getProtocol().equals("jar")) {
+                // If the directory is inside a JAR file
+                try {
+                    JarURLConnection jarConnection = (JarURLConnection) directoryURL.openConnection();
+                    JarFile jarFile = jarConnection.getJarFile();
+                    Enumeration<JarEntry> jarEntries = jarFile.entries();
+
+                    while (jarEntries.hasMoreElements()) {
+                        JarEntry jarEntry = jarEntries.nextElement();
+                        String entryName = jarEntry.getName();
+
+                        if (entryName.startsWith(directoryPath) && !entryName.equals(directoryPath + "/") &&
+                                (entryName.toLowerCase().endsWith(".jpg") || entryName.toLowerCase().endsWith(".jpeg") || entryName.toLowerCase().endsWith(".png"))) {
+                            targets.add(entryName);
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return targets;
     }
 
     private ImageFader getImage(String address) {
-        InputStream inputStream = null;
         try {
             ImageFader current = reference.get();
             BufferedImage from = current != null ? current.getTo() : null;
-            URL url = new URL(address);
-            URLConnection connection = url.openConnection();
-            inputStream = connection.getInputStream();
-            BufferedImage to = ImageIO.read(inputStream);
-            return new ImageFader(from, to, fade);
-        } catch (MalformedURLException e) {
+
+            // Use the ClassLoader to load the image
+            ClassLoader classLoader = RedditBackgroundPanel.class.getClassLoader();
+            URL imageURL = classLoader.getResource(address);
+
+            if (imageURL != null) {
+                Image image = Toolkit.getDefaultToolkit().createImage(imageURL);
+                MediaTracker mediaTracker = new MediaTracker(this);
+                mediaTracker.addImage(image, 0);
+                mediaTracker.waitForID(0);
+
+                BufferedImage to = new BufferedImage(image.getWidth(null), image.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+                Graphics2D g = to.createGraphics();
+                g.drawImage(image, 0, 0, null);
+                g.dispose();
+
+                System.out.println("Loaded local image: " + address);
+                return new ImageFader(from, to, fade);
+            } else {
+                System.out.println("Local image not found: " + address);
+            }
+        } catch (Exception e) {
             e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
         }
+
         return null;
     }
 
