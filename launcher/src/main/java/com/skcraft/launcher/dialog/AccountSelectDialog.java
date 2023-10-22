@@ -186,8 +186,7 @@ public class AccountSelectDialog extends JDialog {
         if (accountList.getSelectedValue() != null) {
             Session offlineSession = new OfflineSession(session.getUsername());
             setResult(offlineSession);
-        }
-        else {
+        } else {
             LoginService loginService = null;
             if (session.getType() == UserType.MICROSOFT) {
                 loginService = launcher.getLoginService(session.getType());

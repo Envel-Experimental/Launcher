@@ -83,7 +83,6 @@ public class RedditLauncherFrame extends LauncherFrame {
     }
 
 
-
     private void redditInit() {
         RedditBackgroundPanel root = new RedditBackgroundPanel(Theme.subreddit, Theme.postCount, Theme.randomise, Theme.interval, Theme.fade);
 

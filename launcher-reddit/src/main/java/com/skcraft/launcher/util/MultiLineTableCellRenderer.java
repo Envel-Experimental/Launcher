@@ -1,11 +1,8 @@
 package com.skcraft.launcher.util;
 
-import javax.swing.JTable;
-import javax.swing.JTextArea;
+import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
-
-import java.awt.Component;
-import java.awt.Font;
+import java.awt.*;
 
 public class MultiLineTableCellRenderer extends DefaultTableCellRenderer {
     private JTextArea textArea;

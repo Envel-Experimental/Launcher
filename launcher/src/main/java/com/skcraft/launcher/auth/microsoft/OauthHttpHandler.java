@@ -59,18 +59,18 @@ public class OauthHttpHandler {
                 OauthHttpHandler.this.notifyAll();
             }
 
-			byte[] response;
-			InputStream is = Launcher.class.getResourceAsStream("login.html");
-			if (is != null) {
-				response = IOUtils.toByteArray(is);
-			} else {
-				response = "Unable to fetch resource login.html".getBytes(Charsets.UTF_8);
-			}
+            byte[] response;
+            InputStream is = Launcher.class.getResourceAsStream("login.html");
+            if (is != null) {
+                response = IOUtils.toByteArray(is);
+            } else {
+                response = "Unable to fetch resource login.html".getBytes(Charsets.UTF_8);
+            }
 
-			httpExchange.sendResponseHeaders(200, response.length);
-			httpExchange.getResponseBody().write(response);
-			httpExchange.getResponseBody().flush();
-			httpExchange.getResponseBody().close();
-		}
-	}
+            httpExchange.sendResponseHeaders(200, response.length);
+            httpExchange.getResponseBody().write(response);
+            httpExchange.getResponseBody().flush();
+            httpExchange.getResponseBody().close();
+        }
+    }
 }

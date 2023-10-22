@@ -6,35 +6,23 @@
 
 package com.skcraft.launcher.dialog;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.skcraft.concurrency.ObservableFuture;
-import com.skcraft.concurrency.ProgressObservable;
-import com.skcraft.launcher.Configuration;
 import com.skcraft.launcher.Launcher;
-import com.skcraft.launcher.auth.AuthenticationException;
 import com.skcraft.launcher.auth.OfflineSession;
 import com.skcraft.launcher.auth.Session;
-import com.skcraft.launcher.auth.YggdrasilLoginService;
-import com.skcraft.launcher.persistence.Persistence;
 import com.skcraft.launcher.swing.FormPanel;
 import com.skcraft.launcher.swing.LinedBoxPanel;
 import com.skcraft.launcher.swing.SwingHelper;
 import com.skcraft.launcher.swing.TextFieldPopupMenu;
 import com.skcraft.launcher.util.SharedLocale;
-import com.skcraft.launcher.util.SwingExecutor;
 import lombok.Data;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.io.IOException;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
 /**
  * The login dialog.
