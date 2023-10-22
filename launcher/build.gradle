@@ -5,17 +5,13 @@ plugins {
     id 'io.freefair.lombok'
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-}
-
 application {
     mainClassName = "com.skcraft.launcher.Launcher"
 }
 
 dependencies {
     api 'javax.xml.bind:jaxb-api:2.3.1'
-    api 'com.fasterxml.jackson.core:jackson-databind:2.13.2.2'
+    api 'com.fasterxml.jackson.core:jackson-databind:2.15.3'
     api 'commons-lang:commons-lang:2.6'
     api 'commons-io:commons-io:1.2'
     api 'com.google.guava:guava:15.0'
@@ -27,17 +23,20 @@ dependencies {
     implementation 'net.java.dev.jna:jna-platform:5.11.0'
 }
 
-processResources {
-    filesMatching('**/*.properties') {
-        filter {
-            it.replace('${project.version}', project.version)
-        }
+shadowJar {
+    archiveClassifier.set("")
+    mergeServiceFiles()
+    manifest {
+        attributes('Main-Class': 'com.skcraft.launcher.Launcher')
+    }
+    zip64 = true
+    minimize()
+
+    from(sourceSets.main.resources) {
+        include '**/*.properties'
     }
 }
 
-shadowJar {
-    archiveClassifier.set("")
-}
 
 build {
     dependsOn(shadowJar)
