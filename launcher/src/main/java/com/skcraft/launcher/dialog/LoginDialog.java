@@ -124,12 +124,17 @@ public class LoginDialog extends JDialog {
 
     @SuppressWarnings("deprecation")
     private void prepareLogin() {
-        if (!usernameText.getText().isEmpty()) {
-            setResult(new OfflineSession(usernameText.getText()));
+        String username = usernameText.getText();
+
+        String regex = "^[a-zA-Z0-9_]*$";
+
+        if (!username.isEmpty() && username.matches(regex)) {
+            setResult(new OfflineSession(username));
         } else {
-            SwingHelper.showErrorDialog(this, SharedLocale.tr("login.noLoginError"), SharedLocale.tr("login.noLoginTitle"));
+            SwingHelper.showErrorDialog(this, SharedLocale.tr("login.invalidUsernameError"), SharedLocale.tr("login.invalidUsernameTitle"));
         }
     }
+
 
     private void setResult(Session session) {
         this.session = session;
