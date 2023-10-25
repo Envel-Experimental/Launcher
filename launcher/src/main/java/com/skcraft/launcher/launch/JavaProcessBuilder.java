@@ -101,7 +101,7 @@ public class JavaProcessBuilder {
         List<String> command = new ArrayList<String>();
 
         if (getRuntime() != null) {
-            File javaBinary = new File(getJavaBinPath(), "java");
+            File javaBinary = new File(getJavaBinPath(), "javaw");
             command.add(javaBinary.getAbsolutePath());
         } else {
             command.add("java");
