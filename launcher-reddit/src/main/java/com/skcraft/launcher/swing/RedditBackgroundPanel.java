@@ -90,12 +90,10 @@ public class RedditBackgroundPanel extends JPanel implements Runnable, ActionLis
             Collections.shuffle(targets);
         }
 
-        System.out.println("Total images found: " + targets.size());
 
         while (showing.get() && index < targets.size()) {
             try {
                 String next = targets.get(index);
-                System.out.println("Displaying image: " + next);
                 ImageFader image = getImage(next);
 
                 if (image != null) {
@@ -167,10 +165,7 @@ public class RedditBackgroundPanel extends JPanel implements Runnable, ActionLis
                 g.drawImage(image, 0, 0, null);
                 g.dispose();
 
-                System.out.println("Loaded local image: " + address);
                 return new ImageFader(from, to, fade);
-            } else {
-                System.out.println("Local image not found: " + address);
             }
         } catch (Exception e) {
             e.printStackTrace();

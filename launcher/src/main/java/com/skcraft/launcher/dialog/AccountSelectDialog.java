@@ -223,7 +223,6 @@ public class AccountSelectDialog extends JDialog {
             if (service != null) {
                 return service.restore(session);
             } else {
-                // Если LoginService равен null, вернуть OfflineSession
                 return new OfflineSession(session.getUsername());
             }
         }
