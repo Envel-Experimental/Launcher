@@ -106,7 +106,13 @@ public class AccountSelectDialog extends JDialog {
         add(listAndLoginContainer, BorderLayout.CENTER);
         add(buttonsPanel, BorderLayout.SOUTH);
 
-        loginButton.addActionListener(ev -> attemptExistingLogin(accountList.getSelectedValue()));
+        loginButton.addActionListener(ev -> {
+            SavedSession selectedSession = accountList.getSelectedValue();
+            if (selectedSession != null) {
+                attemptExistingLogin(selectedSession);
+            }
+        });
+
         cancelButton.addActionListener(ev -> dispose());
 
        /* addCrackedButton.addActionListener(ev -> {
