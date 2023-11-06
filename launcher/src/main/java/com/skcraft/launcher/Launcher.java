@@ -22,10 +22,7 @@ import com.skcraft.launcher.model.minecraft.VersionManifest;
 import com.skcraft.launcher.persistence.Persistence;
 import com.skcraft.launcher.swing.SwingHelper;
 import com.skcraft.launcher.update.UpdateManager;
-import com.skcraft.launcher.util.Environment;
-import com.skcraft.launcher.util.HttpRequest;
-import com.skcraft.launcher.util.SharedLocale;
-import com.skcraft.launcher.util.SimpleLogFormatter;
+import com.skcraft.launcher.util.*;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.Getter;
 import lombok.NonNull;
@@ -46,6 +43,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static com.skcraft.launcher.util.SharedLocale.tr;
 
@@ -439,6 +437,12 @@ public final class Launcher {
      */
     public static void setupLogger() {
         SimpleLogFormatter.configureGlobalLogger();
+
+        // Добавьте интеграцию Loggly в ваш метод setupLogger
+        String logglyEndpoint = "https://logs-01.loggly.com/bulk/00cb8265-0d42-41c6-88aa-1226e3f936fd/tag/foxford-launcher";
+        LogglyHandler logglyHandler = new LogglyHandler(logglyEndpoint);
+        Logger logger = Logger.getLogger("");
+        logger.addHandler(logglyHandler);
     }
 
     /**

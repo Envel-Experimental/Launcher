@@ -53,6 +53,17 @@ public class JavaRuntime implements Comparable<JavaRuntime> {
         return Objects.hashCode(dir);
     }
 
+    @JsonIgnore
+    public File getJavaExecutable() {
+        if (dir == null) {
+            return null;
+        }
+
+        String executableName = is64Bit ? "bin" + File.separator + "java" : "bin" + File.separator + "java" + (System.getProperty("os.name").toLowerCase().contains("win") ? ".exe" : "");
+        return new File(dir, executableName);
+    }
+
+
     @Override
     public int compareTo(JavaRuntime o) {
         if (isMinecraftBundled && !o.isMinecraftBundled) {
