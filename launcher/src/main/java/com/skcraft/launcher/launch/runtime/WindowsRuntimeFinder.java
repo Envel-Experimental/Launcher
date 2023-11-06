@@ -6,10 +6,14 @@ import com.skcraft.launcher.util.WinRegistry;
 import com.sun.jna.platform.win32.WinReg;
 import lombok.extern.java.Log;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Log
 public class WindowsRuntimeFinder implements PlatformRuntimeFinder {
@@ -23,7 +27,7 @@ public class WindowsRuntimeFinder implements PlatformRuntimeFinder {
 
             launcherDirs.add(new File(launcherPath));
         } catch (Throwable err) {
-            log.log(Level.WARNING, "Failed to read launcher location from registry", err);
+            log.log(Level.WARNING, "Failed to read launcher location from registry");
         }
 
         String programFiles = Objects.equals(env.getArchBits(), "64")
@@ -51,7 +55,57 @@ public class WindowsRuntimeFinder implements PlatformRuntimeFinder {
         getEntriesFromRegistry(entries, "SOFTWARE\\JavaSoft\\Java Development Kit");
         getEntriesFromRegistry(entries, "SOFTWARE\\JavaSoft\\JDK");
 
+        // JAVA_HOME
+        String javaHome = System.getenv("JAVA_HOME");
+        if (javaHome != null) {
+            File javaHomeDir = new File(javaHome);
+            File javaExecutable = new File(javaHomeDir, "bin/java.exe");
+            if (javaExecutable.exists()) {
+                JavaRuntime javaHomeRuntime = new JavaRuntime(javaHomeDir, "JAVA_HOME", false);
+                entries.add(javaHomeRuntime);
+            }
+        }
+
+        // ADOPTIUM
+        File javaDirectory = new File("C:\\Program Files\\Eclipse Adoptium");
+
+        File[] subDirectories = javaDirectory.listFiles(File::isDirectory);
+
+        if (subDirectories != null) {
+            for (File subDir : subDirectories) {
+                String dirName = subDir.getName();
+
+                String version = extractVersionFromDirectoryName(dirName);
+
+                if (version != null) {
+                    JavaRuntime javaRuntime = new JavaRuntime(subDir, version, false);
+                    if (javaRuntime.getJavaExecutable().exists()) {
+                        entries.add(javaRuntime);
+                    }
+                }
+            }
+        }
+
+        // TLauncher JRE
+        String userHome = System.getProperty("user.home");
+        File tLauncherJreDirectory = new File(userHome + File.separator + "AppData" + File.separator + "Roaming" + File.separator + ".tlauncher" + File.separator + "legacy" + File.separator + "Minecraft" + File.separator + "jre");
+        if (tLauncherJreDirectory.exists()) {
+            JavaRuntime tLauncherJreRuntime = new JavaRuntime(tLauncherJreDirectory, "TLauncher JRE", false);
+            entries.add(tLauncherJreRuntime);
+        }
+
         return entries;
+    }
+
+    private String extractVersionFromDirectoryName(String dirName) {
+        Pattern pattern = Pattern.compile("jdk-(\\d+\\.\\d+\\.\\d+)");
+        Matcher matcher = pattern.matcher(dirName);
+
+        if (matcher.find()) {
+            return matcher.group(1);
+        } else {
+            return null;
+        }
     }
 
     private static void getEntriesFromRegistry(Collection<JavaRuntime> entries, String basePath)
