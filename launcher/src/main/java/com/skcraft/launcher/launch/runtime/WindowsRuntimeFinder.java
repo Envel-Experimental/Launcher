@@ -55,45 +55,6 @@ public class WindowsRuntimeFinder implements PlatformRuntimeFinder {
         getEntriesFromRegistry(entries, "SOFTWARE\\JavaSoft\\Java Development Kit");
         getEntriesFromRegistry(entries, "SOFTWARE\\JavaSoft\\JDK");
 
-        // JAVA_HOME
-        String javaHome = System.getenv("JAVA_HOME");
-        if (javaHome != null) {
-            File javaHomeDir = new File(javaHome);
-            File javaExecutable = new File(javaHomeDir, "bin/java.exe");
-            if (javaExecutable.exists()) {
-                JavaRuntime javaHomeRuntime = new JavaRuntime(javaHomeDir, "JAVA_HOME", false);
-                entries.add(javaHomeRuntime);
-            }
-        }
-
-        // ADOPTIUM
-        File javaDirectory = new File("C:\\Program Files\\Eclipse Adoptium");
-
-        File[] subDirectories = javaDirectory.listFiles(File::isDirectory);
-
-        if (subDirectories != null) {
-            for (File subDir : subDirectories) {
-                String dirName = subDir.getName();
-
-                String version = extractVersionFromDirectoryName(dirName);
-
-                if (version != null) {
-                    JavaRuntime javaRuntime = new JavaRuntime(subDir, version, false);
-                    if (javaRuntime.getJavaExecutable().exists()) {
-                        entries.add(javaRuntime);
-                    }
-                }
-            }
-        }
-
-        // TLauncher JRE
-        String userHome = System.getProperty("user.home");
-        File tLauncherJreDirectory = new File(userHome + File.separator + "AppData" + File.separator + "Roaming" + File.separator + ".tlauncher" + File.separator + "legacy" + File.separator + "Minecraft" + File.separator + "jre");
-        if (tLauncherJreDirectory.exists()) {
-            JavaRuntime tLauncherJreRuntime = new JavaRuntime(tLauncherJreDirectory, "TLauncher JRE", false);
-            entries.add(tLauncherJreRuntime);
-        }
-
         return entries;
     }
 

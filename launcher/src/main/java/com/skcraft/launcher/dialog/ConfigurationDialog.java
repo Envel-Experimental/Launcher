@@ -87,24 +87,31 @@ public class ConfigurationDialog extends JDialog {
         setTitle(SharedLocale.tr("options.title"));
         initComponents(); // Must be called after jvmRuntime model setup
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setSize(new Dimension(400, 500));
-        setResizable(false);
+        setResizable(true); // Allow resizing
         setLocationRelativeTo(owner);
 
-        mapper.map(jvmArgsText, "jvmArgs");
-        mapper.map(minMemorySpinner, "minMemory");
-        mapper.map(maxMemorySpinner, "maxMemory");
-        mapper.map(permGenSpinner, "permGen");
-        mapper.map(widthSpinner, "windowWidth");
-        mapper.map(heightSpinner, "windowHeight");
-        mapper.map(useProxyCheck, "proxyEnabled");
-        mapper.map(proxyHostText, "proxyHost");
-        mapper.map(proxyPortText, "proxyPort");
-        mapper.map(proxyUsernameText, "proxyUsername");
-        mapper.map(proxyPasswordText, "proxyPassword");
-        mapper.map(gameKeyText, "gameKey");
+        // Dynamically set the size based on screen resolution
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = (int) (screenSize.width * 0.25); // Adjust as needed
+        int height = (int) (screenSize.height * 0.5); // Adjust as needed
+        setSize(new Dimension(width, height));
 
-        mapper.copyFromObject();
+        // Wrap UI-related code in SwingUtilities.invokeLater
+        SwingUtilities.invokeLater(() -> {
+            mapper.map(jvmArgsText, "jvmArgs");
+            mapper.map(minMemorySpinner, "minMemory");
+            mapper.map(maxMemorySpinner, "maxMemory");
+            mapper.map(permGenSpinner, "permGen");
+            mapper.map(widthSpinner, "windowWidth");
+            mapper.map(heightSpinner, "windowHeight");
+            mapper.map(useProxyCheck, "proxyEnabled");
+            mapper.map(proxyHostText, "proxyHost");
+            mapper.map(proxyPortText, "proxyPort");
+            mapper.map(proxyUsernameText, "proxyUsername");
+            mapper.map(proxyPasswordText, "proxyPassword");
+            mapper.map(gameKeyText, "gameKey");
+            mapper.copyFromObject();
+        });
     }
 
     private void initComponents() {
@@ -148,49 +155,52 @@ public class ConfigurationDialog extends JDialog {
 
         SwingHelper.equalWidth(okButton, cancelButton);
 
-        cancelButton.addActionListener(ActionListeners.dispose(this));
+        // Wrap UI-related code in SwingUtilities.invokeLater
+        SwingUtilities.invokeLater(() -> {
+            cancelButton.addActionListener(ActionListeners.dispose(this));
 
-        aboutButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                AboutDialog.showAboutDialog(ConfigurationDialog.this);
-            }
-        });
-
-        okButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                save();
-            }
-        });
-
-        logButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                ConsoleFrame.showMessages();
-            }
-        });
-
-        jvmRuntime.addActionListener(e -> {
-            // A little fun hack...
-            if (jvmRuntime.getSelectedItem() == AddJavaRuntime.ADD_RUNTIME_SENTINEL) {
-                jvmRuntime.setSelectedItem(null);
-                jvmRuntime.setPopupVisible(false);
-
-                JFileChooser chooser = new JFileChooser();
-                chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                chooser.setFileFilter(new JavaRuntimeFileFilter());
-                chooser.setDialogTitle("Choose a Java executable");
-
-                int result = chooser.showOpenDialog(this);
-                if (result == JFileChooser.APPROVE_OPTION) {
-                    JavaRuntime runtime = JavaRuntimeFinder.getRuntimeFromPath(chooser.getSelectedFile().getAbsolutePath());
-
-                    MutableComboBoxModel<JavaRuntime> model = (MutableComboBoxModel<JavaRuntime>) jvmRuntime.getModel();
-                    model.insertElementAt(runtime, 0);
-                    jvmRuntime.setSelectedItem(runtime);
+            aboutButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    AboutDialog.showAboutDialog(ConfigurationDialog.this);
                 }
-            }
+            });
+
+            okButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    save();
+                }
+            });
+
+            logButton.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    ConsoleFrame.showMessages();
+                }
+            });
+
+            jvmRuntime.addActionListener(e -> {
+                // A little fun hack...
+                if (jvmRuntime.getSelectedItem() == AddJavaRuntime.ADD_RUNTIME_SENTINEL) {
+                    jvmRuntime.setSelectedItem(null);
+                    jvmRuntime.setPopupVisible(false);
+
+                    JFileChooser chooser = new JFileChooser();
+                    chooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                    chooser.setFileFilter(new JavaRuntimeFileFilter());
+                    chooser.setDialogTitle("Choose a Java executable");
+
+                    int result = chooser.showOpenDialog(this);
+                    if (result == JFileChooser.APPROVE_OPTION) {
+                        JavaRuntime runtime = JavaRuntimeFinder.getRuntimeFromPath(chooser.getSelectedFile().getAbsolutePath());
+
+                        MutableComboBoxModel<JavaRuntime> model = (MutableComboBoxModel<JavaRuntime>) jvmRuntime.getModel();
+                        model.insertElementAt(runtime, 0);
+                        jvmRuntime.setSelectedItem(runtime);
+                    }
+                }
+            });
         });
     }
 
@@ -198,11 +208,14 @@ public class ConfigurationDialog extends JDialog {
      * Save the configuration and close the dialog.
      */
     public void save() {
-        mapper.copyFromSwing();
-        config.setJavaRuntime((JavaRuntime) jvmRuntime.getSelectedItem());
+        // Wrap UI-related code in SwingUtilities.invokeLater
+        SwingUtilities.invokeLater(() -> {
+            mapper.copyFromSwing();
+            config.setJavaRuntime((JavaRuntime) jvmRuntime.getSelectedItem());
 
-        Persistence.commitAndForget(config);
-        dispose();
+            Persistence.commitAndForget(config);
+            dispose();
+        });
     }
 
     static class JavaRuntimeFileFilter extends FileFilter {
