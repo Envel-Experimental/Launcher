@@ -12,6 +12,8 @@ import lombok.extern.java.Log;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 /**
@@ -36,21 +38,33 @@ public final class JavaRuntimeFinder {
             return Collections.emptyList();
         }
 
-        // Add Minecraft javas
-        List<JavaRuntime> mcRuntimes = MinecraftJavaFinder.scanLauncherDirectories(env,
-                runtimeFinder.getLauncherDirectories(env));
-        Set<JavaRuntime> entries = new HashSet<>(mcRuntimes);
+        // Add Minecraft javas asynchronously
+        CompletableFuture<List<JavaRuntime>> mcRuntimesFuture = CompletableFuture.supplyAsync(() ->
+                MinecraftJavaFinder.scanLauncherDirectories(env, runtimeFinder.getLauncherDirectories(env)));
 
-        // Add system Javas
-        runtimeFinder.getCandidateJavaLocations().stream()
-                .map(JavaRuntimeFinder::getRuntimeFromPath)
-                .filter(Objects::nonNull)
-                .forEach(entries::add);
+        // Add system Javas asynchronously
+        CompletableFuture<List<JavaRuntime>> systemRuntimesFuture = CompletableFuture.supplyAsync(() ->
+                runtimeFinder.getCandidateJavaLocations().stream()
+                        .map(JavaRuntimeFinder::getRuntimeFromPath)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList()));
 
-        // Add extra runtimes
-        entries.addAll(runtimeFinder.getExtraRuntimes());
+        // Wait for both tasks to complete
+        CompletableFuture<List<JavaRuntime>> combinedFuture = mcRuntimesFuture.thenCombineAsync(systemRuntimesFuture,
+                (mcRuntimes, systemRuntimes) -> {
+                    Set<JavaRuntime> entries = new HashSet<>(mcRuntimes);
+                    entries.addAll(systemRuntimes);
+                    entries.addAll(runtimeFinder.getExtraRuntimes());
+                    return new ArrayList<>(entries);
+                });
 
-        return entries.stream().sorted().collect(Collectors.toList());
+        try {
+            // Wait for both tasks to complete
+            return combinedFuture.get().stream().sorted().collect(Collectors.toList());
+        } catch (InterruptedException | ExecutionException e) {
+            log.log(java.util.logging.Level.WARNING, "Error while getting available runtimes", e);
+            return Collections.emptyList();
+        }
     }
 
     /**
@@ -77,19 +91,12 @@ public final class JavaRuntimeFinder {
 
     public static JavaRuntime getRuntimeFromPath(File target) {
         // Normalize target to root first
-        if (target.isFile()) {
-            // Probably referring directly to bin/java, back up two levels
-            target = target.getParentFile().getParentFile();
-        } else if (target.getName().equals("bin")) {
-            // Probably copied the bin directory that java.exe is in
-            target = target.getParentFile();
-        }
+        target = normalizePath(target);
 
         // Find the release file
         File releaseFile = new File(target, "release");
         if (!releaseFile.isFile()) {
             releaseFile = new File(target, "jre/release");
-            // may still not exist - parseFromRelease below will return null if so
         }
 
         // Find the bin folder
@@ -105,7 +112,6 @@ public final class JavaRuntimeFinder {
 
         JavaReleaseFile release = JavaReleaseFile.parseFromRelease(releaseFile.getParentFile());
         if (release == null) {
-            // Make some assumptions...
             return new JavaRuntime(binFolder.getParentFile(), null, true);
         }
 
@@ -123,5 +129,16 @@ public final class JavaRuntimeFinder {
             default:
                 return null;
         }
+    }
+
+    private static File normalizePath(File target) {
+        if (target.isFile()) {
+            // Probably referring directly to bin/java, back up two levels
+            target = target.getParentFile().getParentFile();
+        } else if (target.getName().equals("bin")) {
+            // Probably copied the bin directory that java.exe is in
+            target = target.getParentFile();
+        }
+        return target;
     }
 }

@@ -10,6 +10,7 @@ import com.skcraft.launcher.launch.runtime.JavaRuntime;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.extern.java.Log;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
  * the main class.
  */
 @ToString
+@Log
 public class JavaProcessBuilder {
 
     private static final Pattern argsPattern = Pattern.compile("(?:([^\"]\\S*)|\"(.+?)\")\\s*");
@@ -103,9 +105,12 @@ public class JavaProcessBuilder {
         if (getRuntime() != null) {
             File javaBinary = new File(getJavaBinPath(), "javaw");
             command.add(javaBinary.getAbsolutePath());
+
+            log.info("Java Version: " + getRuntime().getMajorVersion());
         } else {
             command.add("java");
         }
+
 
         command.addAll(flags);
 

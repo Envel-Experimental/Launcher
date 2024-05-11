@@ -41,6 +41,8 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -67,9 +69,9 @@ public final class Launcher {
     @Getter
     private final InstanceList instances;
     @Getter
-    private final Configuration config;
+    private Configuration config;
     @Getter
-    private final AccountList accounts;
+    private AccountList accounts;
     @Getter
     private final AssetsRoot assets;
     @Getter
@@ -105,20 +107,27 @@ public final class Launcher {
         this.properties = LauncherUtils.loadProperties(Launcher.class, "launcher.properties", "com.skcraft.launcher.propertiesFile");
         this.instances = new InstanceList(this);
         this.assets = new AssetsRoot(new File(baseDir, "assets"));
-        this.config = Persistence.load(new File(configDir, "config.json"), Configuration.class);
-        this.accounts = Persistence.load(new File(configDir, "accounts.dat"), AccountList.class);
+
+        CompletableFuture<Void> loadConfigAndAccounts = CompletableFuture.runAsync(() -> {
+            this.config = Persistence.load(new File(configDir, "config.json"), Configuration.class);
+            this.accounts = Persistence.load(new File(configDir, "accounts.dat"), AccountList.class);
+        }, executor);
+
+        CompletableFuture<Void> cleanupTask = CompletableFuture.runAsync(this::cleanupExtractDir, executor);
+
+        CompletableFuture<Void> allTasks = CompletableFuture.allOf(loadConfigAndAccounts, cleanupTask);
+
+        // Wait for all tasks to complete
+        try {
+            allTasks.get();
+        } catch (InterruptedException | ExecutionException e) {
+            log.log(Level.WARNING, "Error while executing startup tasks", e);
+        }
 
         setDefaultConfig();
-
-        executor.submit(new Runnable() {
-            @Override
-            public void run() {
-                cleanupExtractDir();
-            }
-        });
-
         updateManager.checkForUpdate();
     }
+
 
     /**
      * Updates any incorrect / unset configuration settings with defaults.

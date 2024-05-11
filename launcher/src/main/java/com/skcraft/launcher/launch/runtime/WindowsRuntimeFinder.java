@@ -11,6 +11,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,13 +23,35 @@ public class WindowsRuntimeFinder implements PlatformRuntimeFinder {
     public Set<File> getLauncherDirectories(Environment env) {
         HashSet<File> launcherDirs = new HashSet<>();
 
-        try {
-            String launcherPath = WinRegistry.readString(WinReg.HKEY_CURRENT_USER,
-                    "SOFTWARE\\Mojang\\InstalledProducts\\Minecraft Launcher", "InstallLocation");
+        // Add FoxFord Java directory as the first priority
+        File foxFordJavaDir = new File(System.getenv("APPDATA"), ".FoxFord\\java");
+        log.info("Checking for FoxFord Java installation in: " + foxFordJavaDir.getAbsolutePath());
+        if (foxFordJavaDir.exists()) {
+            launcherDirs.add(foxFordJavaDir);
+            log.info("Found FoxFord Java installation.");
+        } else {
+            log.info("FoxFord Java directory not found.");
+        }
 
-            launcherDirs.add(new File(launcherPath));
-        } catch (Throwable err) {
-            log.log(Level.WARNING, "Failed to read launcher location from registry");
+        try {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    String launcherPath = WinRegistry.readString(WinReg.HKEY_CURRENT_USER,
+                            "SOFTWARE\\Mojang\\InstalledProducts\\Minecraft Launcher", "InstallLocation");
+
+                    log.info("Checking for Minecraft Launcher installation in: " + launcherPath);
+                    if (launcherPath != null && !launcherPath.isEmpty()) {
+                        launcherDirs.add(new File(launcherPath));
+                        log.info("Found Minecraft Launcher installation.");
+                    } else {
+                        log.info("Minecraft Launcher installation not found in the registry.");
+                    }
+                } catch (Throwable err) {
+                    log.log(Level.WARNING, "Failed to read launcher location from registry", err);
+                }
+            }).get();
+        } catch (InterruptedException | ExecutionException e) {
+            log.log(Level.WARNING, "Error while reading launcher location from registry asynchronously", e);
         }
 
         String programFiles = Objects.equals(env.getArchBits(), "64")
@@ -35,16 +59,58 @@ public class WindowsRuntimeFinder implements PlatformRuntimeFinder {
                 : System.getenv("ProgramFiles");
 
         // Mojang likes to move the java runtime directory
-        launcherDirs.add(new File(programFiles, "Minecraft"));
-        launcherDirs.add(new File(programFiles, "Minecraft Launcher"));
-        launcherDirs.add(new File(System.getenv("LOCALAPPDATA"), "Packages\\Microsoft.4297127D64EC6_8wekyb3d8bbwe\\LocalCache\\Local"));
+        log.info("Checking for Minecraft installation in: " + programFiles);
+        addIfDirectoryExists(launcherDirs, new File(programFiles, "Minecraft"));
+        addIfDirectoryExists(launcherDirs, new File(programFiles, "Minecraft Launcher"));
+        addIfDirectoryExists(launcherDirs, new File(System.getenv("LOCALAPPDATA"), "Packages\\Microsoft.4297127D64EC6_8wekyb3d8bbwe\\LocalCache\\Local"));
 
         return launcherDirs;
     }
 
     @Override
     public List<File> getCandidateJavaLocations() {
-        return Collections.emptyList();
+        ArrayList<File> candidateJavaLocations = Lists.newArrayList();
+
+        // Add the main .FoxFord\java directory
+        File foxFordJavaDir = new File(System.getenv("APPDATA"), ".FoxFord\\java");
+        log.info("Checking for FoxFord Java installations in: " + foxFordJavaDir.getAbsolutePath());
+        addJavaLocations(candidateJavaLocations, foxFordJavaDir);
+
+        // Add common Java installation paths
+        addJavaLocations(candidateJavaLocations, new File(System.getenv("ProgramFiles"), "Java"));
+        addJavaLocations(candidateJavaLocations, new File(System.getenv("ProgramFiles(x86)"), "Java"));
+        addJavaLocations(candidateJavaLocations, new File("C:\\Program Files"));
+
+        return candidateJavaLocations;
+    }
+
+    // Add Java locations from the given directory
+    private static void addJavaLocations(Collection<File> locations, File directory) {
+        log.info("Checking for Java installations in: " + directory.getAbsolutePath());
+        if (directory.exists() && directory.isDirectory()) {
+            File[] javaDirs = directory.listFiles((dir, name) -> name.toLowerCase().startsWith("jdk") && new File(dir, "bin/java.exe").exists());
+            if (javaDirs != null) {
+                locations.addAll(Arrays.asList(javaDirs));
+                for (File javaDir : javaDirs) {
+                    log.info("Found Java installation: " + javaDir.getAbsolutePath());
+                }
+            } else {
+                log.info("No Java installations found.");
+            }
+        } else {
+            log.info("Directory not found.");
+        }
+    }
+
+    // Helper method to add directory to the collection if it exists
+    private static void addIfDirectoryExists(Collection<File> collection, File directory) {
+        log.info("Checking for directory: " + directory.getAbsolutePath());
+        if (directory.exists() && directory.isDirectory()) {
+            collection.add(directory);
+            log.info("Found directory: " + directory.getAbsolutePath());
+        } else {
+            log.info("Directory not found.");
+        }
     }
 
     @Override
@@ -58,16 +124,7 @@ public class WindowsRuntimeFinder implements PlatformRuntimeFinder {
         return entries;
     }
 
-    private String extractVersionFromDirectoryName(String dirName) {
-        Pattern pattern = Pattern.compile("jdk-(\\d+\\.\\d+\\.\\d+)");
-        Matcher matcher = pattern.matcher(dirName);
 
-        if (matcher.find()) {
-            return matcher.group(1);
-        } else {
-            return null;
-        }
-    }
 
     private static void getEntriesFromRegistry(Collection<JavaRuntime> entries, String basePath)
             throws IllegalArgumentException {
