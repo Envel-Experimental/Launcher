@@ -72,19 +72,22 @@ public class LauncherFrame extends JFrame {
 
         SwingHelper.setFrameIcon(this, Launcher.class, "icon.png");
 
-        SwingUtilities.invokeLater(new Runnable() {
+        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
             @Override
-            public void run() {
+            protected Void doInBackground() {
                 loadInstances();
+                return null;
             }
-        });
+        };
+
+        worker.execute();
     }
+
 
     protected void initComponents() {
         JPanel container = createContainerPanel();
         container.setLayout(new MigLayout("fill, insets dialog", "[][]push[][]", "[grow][]"));
 
-        webView = createNewsPanel();
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, instanceScroll, webView);
 
         updateCheck.setSelected(true);
@@ -376,7 +379,6 @@ public class LauncherFrame extends JFrame {
         @Override
         public void gameClosed() {
             launcher.showLauncherWindow();
-            launcher.getUpdateManager().checkForUpdate();
         }
     }
 

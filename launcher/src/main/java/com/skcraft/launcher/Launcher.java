@@ -21,7 +21,6 @@ import com.skcraft.launcher.model.minecraft.Library;
 import com.skcraft.launcher.model.minecraft.VersionManifest;
 import com.skcraft.launcher.persistence.Persistence;
 import com.skcraft.launcher.swing.SwingHelper;
-import com.skcraft.launcher.update.UpdateManager;
 import com.skcraft.launcher.util.*;
 import com.sun.management.OperatingSystemMXBean;
 import lombok.Getter;
@@ -77,8 +76,6 @@ public final class Launcher {
     @Getter
     private final LaunchSupervisor launchSupervisor = new LaunchSupervisor(this);
     @Getter
-    private final UpdateManager updateManager = new UpdateManager(this);
-    @Getter
     private final InstanceTasks instanceTasks = new InstanceTasks(this);
     private final Environment env = Environment.getInstance();
 
@@ -125,7 +122,6 @@ public final class Launcher {
         }
 
         setDefaultConfig();
-        updateManager.checkForUpdate();
     }
 
 
@@ -426,16 +422,11 @@ public final class Launcher {
         LauncherArguments options = new LauncherArguments();
         new JCommander(options).parse(args);
 
-        Integer bsVersion = options.getBootstrapVersion();
-        log.info(bsVersion != null ? "Bootstrap version " + bsVersion + " detected" : "Not bootstrapped");
-
         File dir = options.getDir();
         if (dir != null) {
             dir = dir.getAbsoluteFile();
-            log.info("Using given base directory " + dir.getAbsolutePath());
         } else {
             dir = new File("").getAbsoluteFile();
-            log.info("Using current directory " + dir.getAbsolutePath());
         }
 
         return new Launcher(dir);

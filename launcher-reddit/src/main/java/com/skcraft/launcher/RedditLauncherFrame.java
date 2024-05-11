@@ -113,11 +113,10 @@ public class RedditLauncherFrame extends LauncherFrame {
     }
 
     private void setIcons() {
-        Image mainIcon = SwingHelper.createImage(LauncherFrame.class, "/com/skcraft/launcher/icon.png");
         Image titleIcon = SwingHelper.createImage(LauncherFrame.class, "/com/skcraft/launcher/title.png");
         ArrayList<Image> icons = new ArrayList<Image>();
-        if (mainIcon != null) {
-            icons.add(mainIcon);
+        if (titleIcon != null) {
+            icons.add(titleIcon);
         }
         if (titleIcon != null) {
             icons.add(titleIcon.getScaledInstance(16, 16, Image.SCALE_SMOOTH));
