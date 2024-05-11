@@ -47,9 +47,7 @@ public class LauncherFrame extends JFrame {
     @Getter
     protected final JScrollPane instanceScroll = new JScrollPane(instancesTable);
     protected final JButton launchButton = createPrimaryButton(SharedLocale.tr("launcher.launch"));
-    protected final JButton refreshButton = new JButton(SharedLocale.tr("launcher.checkForUpdates"));
     protected final JButton optionsButton = createPrimaryButton(SharedLocale.tr("launcher.options"));
-    protected final JButton selfUpdateButton = new JButton(SharedLocale.tr("launcher.updateLauncher"));
     protected final JCheckBox updateCheck = createCheckBox(SharedLocale.tr("launcher.downloadUpdates"));
     private final Launcher launcher;
     protected WebpagePanel webView;
@@ -88,17 +86,6 @@ public class LauncherFrame extends JFrame {
 
         webView = createNewsPanel();
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, instanceScroll, webView);
-        selfUpdateButton.setVisible(launcher.getUpdateManager().getPendingUpdate());
-
-        launcher.getUpdateManager().addPropertyChangeListener(new PropertyChangeListener() {
-            @Override
-            public void propertyChange(PropertyChangeEvent evt) {
-                if (evt.getPropertyName().equals("pendingUpdate")) {
-                    selfUpdateButton.setVisible((Boolean) evt.getNewValue());
-                    refreshButton.setVisible(false);
-                }
-            }
-        });
 
         updateCheck.setSelected(true);
         instancesTable.setModel(instancesModel);
@@ -108,9 +95,7 @@ public class LauncherFrame extends JFrame {
         splitPane.setOpaque(false);
         container.add(splitPane, "grow, wrap, span 5, gapbottom unrel, w null:680, h null:350");
         SwingHelper.flattenJSplitPane(splitPane);
-        container.add(refreshButton);
         container.add(updateCheck);
-        container.add(selfUpdateButton);
         container.add(optionsButton);
         container.add(launchButton);
 
@@ -127,22 +112,6 @@ public class LauncherFrame extends JFrame {
 
         instancesTable.addMouseListener(new DoubleClickToButtonAdapter(launchButton));
 
-        refreshButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                loadInstances();
-                launcher.getUpdateManager().checkForUpdate();
-                webView.browse(launcher.getNewsURL(), false);
-            }
-        });
-
-        selfUpdateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                launcher.getUpdateManager().performUpdate(LauncherFrame.this);
-                refreshButton.setVisible(true);
-            }
-        });
 
         optionsButton.addActionListener(new ActionListener() {
             @Override

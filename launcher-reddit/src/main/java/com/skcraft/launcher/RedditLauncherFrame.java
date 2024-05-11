@@ -92,16 +92,10 @@ public class RedditLauncherFrame extends LauncherFrame {
         launchControls.add(optionsButton);
         launchControls.add(launchButton);
 
-        JPanel updateControls = new JPanel();
-        updateControls.add(refreshButton);
-        updateControls.add(selfUpdateButton);
-        updateControls.setBackground(getAltFrostColor(Theme.frost));
-
         JPanel left = new FrostPanel(root, Theme.frost);
         left.setLayout(new BorderLayout());
         left.setPreferredSize(new Dimension((int) (250 * sizeModifier), (int) (300 * sizeModifier)));
         left.add(instancesTable, BorderLayout.CENTER);
-        left.add(updateControls, BorderLayout.PAGE_END);
 
         JPanel center = new JPanel();
         center.setOpaque(false);
