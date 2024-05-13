@@ -1,6 +1,5 @@
 package com.skcraft.launcher.launch.runtime;
 
-import com.google.common.collect.Lists;
 import com.skcraft.launcher.util.Environment;
 import com.skcraft.launcher.util.WinRegistry;
 import com.sun.jna.platform.win32.WinReg;

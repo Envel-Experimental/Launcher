@@ -36,11 +36,4 @@ public class FancyLauncherFrame extends LauncherFrame {
         return new FancyBackgroundPanel();
     }
 
-    @Override
-    protected WebpagePanel createNewsPanel() {
-        WebpagePanel panel = super.createNewsPanel();
-        panel.setBrowserBorder(BorderFactory.createEmptyBorder());
-        return panel;
-    }
-
 }

@@ -9,6 +9,7 @@ package com.skcraft.launcher.dialog;
 import com.skcraft.launcher.Launcher;
 import com.skcraft.launcher.auth.OfflineSession;
 import com.skcraft.launcher.auth.Session;
+import com.skcraft.launcher.dialog.component.SizeModifier;
 import com.skcraft.launcher.swing.FormPanel;
 import com.skcraft.launcher.swing.LinedBoxPanel;
 import com.skcraft.launcher.swing.SwingHelper;
@@ -83,32 +84,47 @@ public class LoginDialog extends JDialog {
 
     @SuppressWarnings("unchecked")
     private void initComponents() {
-        usernameText.setEditable(true);
+        SizeModifier sizeModifier = new SizeModifier();
+        sizeModifier.calculateSizeModifier();
 
-        loginButton.setFont(loginButton.getFont().deriveFont(Font.BOLD));
+        usernameText.setEditable(true);
+        loginButton.setFont(loginButton.getFont().deriveFont(Font.BOLD, (float) (25 * sizeModifier.sizeModifier)));
+
+        int textFieldWidth = (int) (5 * sizeModifier.sizeModifier);
+        int textFieldHeight = (int) (45 * sizeModifier.sizeModifier);
+
+        int buttonWidth = (int) (5 * sizeModifier.sizeModifier);
+        int buttonHeight = (int) (65 * sizeModifier.sizeModifier);
+
+        loginButton.setPreferredSize(new Dimension(buttonWidth, buttonHeight));
+        usernameText.setPreferredSize(new Dimension(textFieldWidth, textFieldHeight));
+        usernameText.setFont(usernameText.getFont().deriveFont(25 * (float) sizeModifier.sizeModifier));
+
+        message.setFont(new Font("Arial", Font.PLAIN, (int) (19 * sizeModifier.sizeModifier)));
+        message.setHorizontalAlignment(SwingConstants.CENTER);
 
         formPanel.addRow(message);
-        formPanel.addRow(new JLabel(SharedLocale.tr("login.nickname")), usernameText);
-        buttonsPanel.setBorder(BorderFactory.createEmptyBorder(26, 13, 13, 13));
+        JLabel usernameLabel = new JLabel(SharedLocale.tr("login.nickname"));
+        usernameLabel.setFont(usernameLabel.getFont().deriveFont(Font.BOLD, (float) (25 * sizeModifier.sizeModifier)));
+        formPanel.addRow(usernameLabel, usernameText);
 
-        //buttonsPanel.addElement(recoverButton);
-        buttonsPanel.addGlue();
-        buttonsPanel.addElement(loginButton);
-        buttonsPanel.addElement(cancelButton);
+        JPanel buttonPanel = new JPanel(new BorderLayout());
+        int padding = (int) (13 * sizeModifier.sizeModifier);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(padding, padding, padding * 2, padding));
+        buttonPanel.add(loginButton, BorderLayout.CENTER);
 
-        add(formPanel, BorderLayout.CENTER);
-        add(buttonsPanel, BorderLayout.SOUTH);
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.add(formPanel, BorderLayout.CENTER);
+        contentPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        add(contentPanel, BorderLayout.CENTER);
 
         getRootPane().setDefaultButton(loginButton);
-
         passwordText.setComponentPopupMenu(TextFieldPopupMenu.INSTANCE);
 
-        /*recoverButton.addActionListener(
-                ActionListeners.openURL(recoverButton, launcher.getProperties().getProperty("resetPasswordUrl")));*/
-
         loginButton.addActionListener(e -> prepareLogin());
-        cancelButton.addActionListener(e -> dispose());
     }
+
 
     @SuppressWarnings("deprecation")
     private void prepareLogin() {

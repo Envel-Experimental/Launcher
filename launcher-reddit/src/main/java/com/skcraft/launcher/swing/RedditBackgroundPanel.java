@@ -34,7 +34,6 @@ public class RedditBackgroundPanel extends JPanel implements Runnable, ActionLis
     private final Timer timer;
     private final long delay;
     private final long fade;
-    private final String directoryPath = "com/skcraft/launcher/media_embed/";
 
     public RedditBackgroundPanel(String subreddit, int postCount, boolean randomise, long interval, long fade) {
         this.reference = new AtomicReference<ImageFader>(DEFAULT);

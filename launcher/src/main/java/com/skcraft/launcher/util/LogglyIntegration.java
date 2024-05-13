@@ -1,7 +1,7 @@
 package com.skcraft.launcher.util;
 
-import java.util.logging.Logger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class LogglyIntegration {
 

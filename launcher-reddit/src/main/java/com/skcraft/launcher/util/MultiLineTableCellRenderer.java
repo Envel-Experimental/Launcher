@@ -5,7 +5,7 @@ import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 
 public class MultiLineTableCellRenderer extends DefaultTableCellRenderer {
-    private JTextArea textArea;
+    private final JTextArea textArea;
     private Font originalFont;
 
     public MultiLineTableCellRenderer() {

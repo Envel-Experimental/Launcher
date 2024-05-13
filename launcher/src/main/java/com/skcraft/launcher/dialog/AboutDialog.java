@@ -36,7 +36,7 @@ public class AboutDialog extends JDialog {
 
         container.add(new JLabel("<html>Licensed under GNU General Public License, version 3."), "wrap, gapbottom unrel");
         container.add(new JLabel("<html>Designed for foxford.ru"), "wrap, gapbottom unrel");
-        container.add(new JLabel("<html>By Envel_GO (Nikita Gutsenkov)."), "wrap, gapbottom unrel");
+        container.add(new JLabel("<html>By Envel_Go (Nikita Gutsenkov)."), "wrap, gapbottom unrel");
 
         JButton okButton = new JButton("OK");
         JButton sourceCodeButton = new JButton("Website");

@@ -8,6 +8,7 @@ import com.skcraft.concurrency.ProgressObservable;
 import com.skcraft.concurrency.SettableProgress;
 import com.skcraft.launcher.Launcher;
 import com.skcraft.launcher.auth.*;
+import com.skcraft.launcher.dialog.component.SizeModifier;
 import com.skcraft.launcher.persistence.Persistence;
 import com.skcraft.launcher.swing.LinedBoxPanel;
 import com.skcraft.launcher.swing.SwingHelper;
@@ -23,11 +24,9 @@ public class AccountSelectDialog extends JDialog {
     private final JList<SavedSession> accountList;
     private final JButton loginButton = new JButton(SharedLocale.tr("accounts.play"));
     private final JButton cancelButton = new JButton(SharedLocale.tr("button.cancel"));
-    //private final JButton addCrackedButton = new JButton(SharedLocale.tr("accounts.addCracked"));
     private final JButton addOfflineButton = new JButton(SharedLocale.tr("accounts.addOffline"));
     private final JButton addMicrosoftButton = new JButton(SharedLocale.tr("accounts.addMicrosoft"));
     private final JButton removeSelected = new JButton(SharedLocale.tr("accounts.removeSelected"));
-    //private final JButton offlineButton = new JButton(SharedLocale.tr("login.playOffline"));
     private final LinedBoxPanel buttonsPanel = new LinedBoxPanel(true);
 
     private final Launcher launcher;
@@ -42,8 +41,9 @@ public class AccountSelectDialog extends JDialog {
         setTitle(SharedLocale.tr("accounts.title"));
         initComponents();
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+
         setMinimumSize(new Dimension(350, 250));
-        setResizable(false);
+        setResizable(true);
         pack();
         setLocationRelativeTo(owner);
     }
@@ -62,6 +62,11 @@ public class AccountSelectDialog extends JDialog {
     }
 
     private void initComponents() {
+
+        SizeModifier sizeModifier = new SizeModifier();
+        sizeModifier.calculateSizeModifier();
+
+
         setLayout(new BorderLayout());
 
         accountList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -70,41 +75,53 @@ public class AccountSelectDialog extends JDialog {
         accountList.setCellRenderer(new AccountRenderer());
 
         JScrollPane accountPane = new JScrollPane(accountList);
-        accountPane.setPreferredSize(new Dimension(280, 150));
-        accountPane.setAlignmentX(CENTER_ALIGNMENT);
 
-        loginButton.setFont(loginButton.getFont().deriveFont(Font.BOLD));
-        loginButton.setFont(loginButton.getFont().deriveFont(16f));
+        int width = (int) (400 * sizeModifier.sizeModifier);
+        int height = (int) (250 * sizeModifier.sizeModifier);
+        accountPane.setPreferredSize(new Dimension(width, height));
 
-        addOfflineButton.setFont(loginButton.getFont().deriveFont(16f));
+        loginButton.setFont(loginButton.getFont().deriveFont(Font.BOLD, 25 * (float) sizeModifier.sizeModifier));
+        cancelButton.setFont(cancelButton.getFont().deriveFont(25 * (float) sizeModifier.sizeModifier));
+        addOfflineButton.setFont(loginButton.getFont());
+        addMicrosoftButton.setFont(cancelButton.getFont());
+        removeSelected.setFont(cancelButton.getFont());
 
-        //Start Buttons
-        buttonsPanel.setBorder(BorderFactory.createEmptyBorder(26, 13, 13, 13));
-        /*if (launcher.getConfig().isOfflineEnabled()) {
-            buttonsPanel.addElement(offlineButton);
-        }*/
-        buttonsPanel.addGlue();
-        buttonsPanel.addElement(cancelButton);
-        buttonsPanel.addElement(loginButton);
+        int buttonWidth = (int) (200 * sizeModifier.sizeModifier);
+        int buttonHeight = (int) (100 * sizeModifier.sizeModifier);
+        Dimension buttonSize = new Dimension(buttonWidth, buttonHeight);
+        loginButton.setPreferredSize(buttonSize);
+        cancelButton.setPreferredSize(buttonSize);
 
-        //Login Buttons
-        JPanel loginButtonsRow = new JPanel(new BorderLayout(0, 4));
-        addOfflineButton.setAlignmentX(CENTER_ALIGNMENT);
-        addMicrosoftButton.setAlignmentX(CENTER_ALIGNMENT);
-        removeSelected.setAlignmentX(CENTER_ALIGNMENT);
-        loginButtonsRow.add(addOfflineButton, BorderLayout.NORTH);
-        loginButtonsRow.add(addMicrosoftButton, BorderLayout.CENTER);
-        loginButtonsRow.add(removeSelected, BorderLayout.SOUTH);
-        loginButtonsRow.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.add(cancelButton);
+        buttonPanel.add(loginButton);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder((int) (13 * sizeModifier.sizeModifier),
+                (int) (13 * sizeModifier.sizeModifier),
+                (int) (13 * sizeModifier.sizeModifier),
+                (int) (13 * sizeModifier.sizeModifier)));
 
-        JPanel listAndLoginContainer = new JPanel();
-        listAndLoginContainer.add(accountPane, BorderLayout.WEST);
+        JPanel loginButtonsRow = new JPanel(new GridLayout(0, 1, 0, (int) (10 * sizeModifier.sizeModifier)));
+        loginButtonsRow.add(addOfflineButton);
+        loginButtonsRow.add(addMicrosoftButton);
+        loginButtonsRow.add(removeSelected);
+        loginButtonsRow.setBorder(BorderFactory.createEmptyBorder(
+                (int) (13 * sizeModifier.sizeModifier),
+                (int) (13 * sizeModifier.sizeModifier),
+                (int) (13 * sizeModifier.sizeModifier),
+                (int) (13 * sizeModifier.sizeModifier)));
+
+
+        JPanel listAndLoginContainer = new JPanel(new BorderLayout((int) (20 * sizeModifier.sizeModifier), 0));
+        listAndLoginContainer.add(accountPane, BorderLayout.CENTER);
         listAndLoginContainer.add(loginButtonsRow, BorderLayout.EAST);
-        listAndLoginContainer.add(Box.createVerticalStrut(5));
-        listAndLoginContainer.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        listAndLoginContainer.setBorder(BorderFactory.createEmptyBorder((int) (13 * sizeModifier.sizeModifier),
+                (int) (13 * sizeModifier.sizeModifier),
+                (int) (13 * sizeModifier.sizeModifier),
+                (int) (13 * sizeModifier.sizeModifier)));
 
         add(listAndLoginContainer, BorderLayout.CENTER);
-        add(buttonsPanel, BorderLayout.SOUTH);
+        add(buttonPanel, BorderLayout.SOUTH);
+
 
         loginButton.addActionListener(ev -> {
             SavedSession selectedSession = accountList.getSelectedValue();
@@ -114,17 +131,6 @@ public class AccountSelectDialog extends JDialog {
         });
 
         cancelButton.addActionListener(ev -> dispose());
-
-       /* addCrackedButton.addActionListener(ev -> {
-            Session newSession = LoginDialog.showLoginRequest(this, launcher);
-
-                    //setResult(new OfflineSession(getName()));
-            launcher.getAccounts().add(newSession.toSavedSession());
-            if (newSession != null) {
-                launcher.getAccounts().add(newSession.toSavedSession());
-                setResult(newSession);
-            }
-        });*/
 
         addOfflineButton.addActionListener(ev -> {
             Session newSession = LoginDialog.showLoginRequest(this, launcher);
@@ -137,22 +143,21 @@ public class AccountSelectDialog extends JDialog {
 
         addMicrosoftButton.addActionListener(ev -> attemptMicrosoftLogin());
 
-        /*offlineButton.addActionListener(ev ->
-                setResult(new OfflineSession(launcher.getProperties().getProperty("offlinePlayerName"))));*/
-
         removeSelected.addActionListener(ev -> {
-            if (accountList.getSelectedValue() != null) {
+            SavedSession selectedValue = accountList.getSelectedValue();
+            if (selectedValue != null) {
                 boolean confirmed = SwingHelper.confirmDialog(this, SharedLocale.tr("accounts.confirmForget"),
                         SharedLocale.tr("accounts.confirmForgetTitle"));
 
                 if (confirmed) {
-                    launcher.getAccounts().remove(accountList.getSelectedValue());
+                    launcher.getAccounts().remove(selectedValue);
                 }
             }
         });
 
         accountList.setSelectedIndex(0);
     }
+
 
     @Override
     public void dispose() {
@@ -252,10 +257,14 @@ public class AccountSelectDialog extends JDialog {
         @Override
         public Component getListCellRendererComponent(JList<? extends SavedSession> list, SavedSession value, int index, boolean isSelected, boolean cellHasFocus) {
             setText(value.getUsername());
+            setFont(getFont().deriveFont(Font.BOLD, 25f));
             if (value.getAvatarImage() != null) {
                 setIcon(new ImageIcon(value.getAvatarImage()));
             } else {
-                setIcon(SwingHelper.createIcon(Launcher.class, "default_skin.png", 32, 32));
+                Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+                int iconSize = (int) (screenSize.width * 0.03);
+
+                setIcon(SwingHelper.createIcon(Launcher.class, "default_skin.png", iconSize, iconSize));
             }
 
             if (isSelected) {

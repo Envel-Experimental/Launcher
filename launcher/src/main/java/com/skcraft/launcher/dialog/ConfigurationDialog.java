@@ -9,6 +9,7 @@ package com.skcraft.launcher.dialog;
 import com.skcraft.launcher.Configuration;
 import com.skcraft.launcher.Launcher;
 import com.skcraft.launcher.dialog.component.BetterComboBox;
+import com.skcraft.launcher.dialog.component.SizeModifier;
 import com.skcraft.launcher.launch.runtime.AddJavaRuntime;
 import com.skcraft.launcher.launch.runtime.JavaRuntime;
 import com.skcraft.launcher.launch.runtime.JavaRuntimeFinder;
@@ -67,13 +68,15 @@ public class ConfigurationDialog extends JDialog {
     public ConfigurationDialog(Window owner, @NonNull Launcher launcher) {
         super(owner, ModalityType.DOCUMENT_MODAL);
 
+        SizeModifier sizeModifier = new SizeModifier();
+        sizeModifier.calculateSizeModifier();
+
         this.config = launcher.getConfig();
         mapper = new ObjectSwingMapper(config);
 
         JavaRuntime[] javaRuntimes = JavaRuntimeFinder.getAvailableRuntimes().toArray(new JavaRuntime[0]);
         DefaultComboBoxModel<JavaRuntime> model = new DefaultComboBoxModel<>(javaRuntimes);
 
-        // Put the runtime from the config in the model if it isn't
         boolean configRuntimeFound = Arrays.stream(javaRuntimes).anyMatch(r -> r.equals(config.getJavaRuntime()));
         if (!configRuntimeFound && config.getJavaRuntime() != null) {
             model.insertElementAt(config.getJavaRuntime(), 0);
@@ -85,18 +88,15 @@ public class ConfigurationDialog extends JDialog {
         jvmRuntime.setSelectedItem(config.getJavaRuntime());
 
         setTitle(SharedLocale.tr("options.title"));
-        initComponents(); // Must be called after jvmRuntime model setup
+        initComponents();
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
-        setResizable(true); // Allow resizing
+        setResizable(true);
         setLocationRelativeTo(owner);
 
-        // Dynamically set the size based on screen resolution
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        int width = (int) (screenSize.width * 0.25); // Adjust as needed
-        int height = (int) (screenSize.height * 0.5); // Adjust as needed
+        int width = (int) (sizeModifier.sizeModifier * 700);
+        int height = (int) (sizeModifier.sizeModifier * 500);
         setSize(new Dimension(width, height));
 
-        // Wrap UI-related code in SwingUtilities.invokeLater
         SwingUtilities.invokeLater(() -> {
             mapper.map(jvmArgsText, "jvmArgs");
             mapper.map(minMemorySpinner, "minMemory");

@@ -143,50 +143,44 @@ public class ProcessConsoleFrame extends ConsoleFrame {
             return false;
         }
 
-        trayIcon = new TrayIcon(getTrayRunningIcon());
-        trayIcon.setImageAutoSize(true);
-        trayIcon.setToolTip(SharedLocale.tr("console.trayTooltip"));
-
-        trayIcon.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                reshow();
-            }
-        });
-
-        PopupMenu popup = new PopupMenu();
-        MenuItem item;
-
-        popup.add(item = new MenuItem(SharedLocale.tr("console.trayTitle")));
-        item.setEnabled(false);
-
-        popup.add(item = new MenuItem(SharedLocale.tr("console.tray.showWindow")));
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                reshow();
-            }
-        });
-
-        popup.add(item = new MenuItem(SharedLocale.tr("console.tray.forceClose")));
-        item.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                performKill();
-            }
-        });
-
-        trayIcon.setPopupMenu(popup);
-
         try {
+            trayIcon = new TrayIcon(getTrayRunningIcon());
+            trayIcon.setImageAutoSize(true);
+            trayIcon.setToolTip(SharedLocale.tr("console.trayTooltip"));
+
+            trayIcon.addActionListener(e -> reshow());
+
+            PopupMenu popup = new PopupMenu();
+            MenuItem item;
+
+            Font font = UIManager.getFont("Menu.font");
+            if (font == null) {
+                font = new Font("SansSerif", Font.PLAIN, 12);
+            }
+
+            popup.setFont(font);
+
+            popup.add(item = new MenuItem(SharedLocale.tr("console.trayTitle")));
+            item.setEnabled(false);
+
+            popup.add(item = new MenuItem(SharedLocale.tr("console.tray.showWindow")));
+            item.addActionListener(e -> reshow());
+
+            popup.add(item = new MenuItem(SharedLocale.tr("console.tray.forceClose")));
+            item.addActionListener(e -> performKill());
+
+            trayIcon.setPopupMenu(popup);
+
             SystemTray tray = SystemTray.getSystemTray();
             tray.add(trayIcon);
+
             return true;
         } catch (AWTException e) {
+            e.printStackTrace();
+            return false;
         }
-
-        return false;
     }
+
 
     private synchronized void updateComponents() {
         Image icon = hasProcess() ? getTrayRunningIcon() : getTrayClosedIcon();
