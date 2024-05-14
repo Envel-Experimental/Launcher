@@ -16,8 +16,12 @@ import com.skcraft.launcher.util.SharedLocale;
 import com.skcraft.launcher.util.SwingExecutor;
 import lombok.RequiredArgsConstructor;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.concurrent.Callable;
 
 public class AccountSelectDialog extends JDialog {
@@ -258,12 +262,19 @@ public class AccountSelectDialog extends JDialog {
         public Component getListCellRendererComponent(JList<? extends SavedSession> list, SavedSession value, int index, boolean isSelected, boolean cellHasFocus) {
             setText(value.getUsername());
             setFont(getFont().deriveFont(Font.BOLD, 25f));
+            Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+            int iconSize = (int) (screenSize.width * 0.03);
             if (value.getAvatarImage() != null) {
-                setIcon(new ImageIcon(value.getAvatarImage()));
+                try {
+                    byte[] imageData = value.getAvatarImage();
+                    ByteArrayInputStream bis = new ByteArrayInputStream(imageData);
+                    BufferedImage bufferedImage = ImageIO.read(bis);
+                    Image scaledImage = bufferedImage.getScaledInstance(iconSize, iconSize, Image.SCALE_SMOOTH);
+                    setIcon(new ImageIcon(scaledImage));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             } else {
-                Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-                int iconSize = (int) (screenSize.width * 0.03);
-
                 setIcon(SwingHelper.createIcon(Launcher.class, "default_skin.png", iconSize, iconSize));
             }
 

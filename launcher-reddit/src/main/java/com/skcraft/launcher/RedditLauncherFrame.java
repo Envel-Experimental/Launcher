@@ -69,7 +69,6 @@ public class RedditLauncherFrame extends LauncherFrame {
     @Override
     public void initComponents() {
         calculateSizeModifier();
-        log.log(Level.WARNING, "sizeModifier " + sizeModifier);
         super.initComponents();
         getContentPane().removeAll();
         instancesTable.setBackground(new Color(0, 0, 0, 0));

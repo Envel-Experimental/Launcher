@@ -7,6 +7,8 @@
 package com.skcraft.launcher.launch;
 
 import com.skcraft.launcher.launch.runtime.JavaRuntime;
+import com.skcraft.launcher.util.Environment;
+import com.skcraft.launcher.util.Platform;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -49,6 +51,9 @@ public class JavaProcessBuilder {
     private final List<String> flags = new ArrayList<String>();
     @Getter
     private final List<String> args = new ArrayList<String>();
+    @Getter
+    @Setter
+    private Environment environment = Environment.getInstance();
     @Getter
     @Setter
     private String mainClass;
@@ -103,7 +108,12 @@ public class JavaProcessBuilder {
         List<String> command = new ArrayList<String>();
 
         if (getRuntime() != null) {
-            File javaBinary = new File(getJavaBinPath(), "javaw");
+            File javaBinary;
+            if (getEnvironment().getPlatform() == Platform.WINDOWS) {
+                javaBinary = new File(getJavaBinPath(), "javaw");
+            } else {
+                javaBinary = new File(getJavaBinPath(), "java");
+            }
             command.add(javaBinary.getAbsolutePath());
 
             log.info("Java Version: " + getRuntime().getMajorVersion());

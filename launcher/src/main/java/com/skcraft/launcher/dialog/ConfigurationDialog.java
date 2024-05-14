@@ -93,7 +93,7 @@ public class ConfigurationDialog extends JDialog {
         setResizable(true);
         setLocationRelativeTo(owner);
 
-        int width = (int) (sizeModifier.sizeModifier * 700);
+        int width = (int) (sizeModifier.sizeModifier * 600);
         int height = (int) (sizeModifier.sizeModifier * 500);
         setSize(new Dimension(width, height));
 
