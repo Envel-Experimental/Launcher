@@ -41,6 +41,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import static com.skcraft.launcher.LauncherUtils.checkInterrupted;
@@ -218,32 +219,35 @@ public abstract class BaseUpdater {
                 .asJson(AssetsIndex.class);
 
         // Keep track of duplicates
-        Set<String> downloading = new HashSet<String>();
+        Set<String> downloading = ConcurrentHashMap.newKeySet();
 
-        for (Map.Entry<String, Asset> entry : index.getObjects().entrySet()) {
-            checkInterrupted();
+        // Use parallel stream to speed up processing of assets
+        index.getObjects().entrySet().parallelStream().forEach(entry -> {
+            try {
+                checkInterrupted();
 
-            String hash = entry.getValue().getHash();
-            String path = String.format("%s/%s", hash.subSequence(0, 2), hash);
-            File targetFile = assetsRoot.getObjectPath(entry.getValue());
+                String hash = entry.getValue().getHash();
+                String path = String.format("%s/%s", hash.substring(0, 2), hash);
+                File targetFile = assetsRoot.getObjectPath(entry.getValue());
 
-            if (!targetFile.exists() && !downloading.contains(path)) {
-                List<URL> urls = new ArrayList<URL>();
-                for (URL sourceUrl : sources) {
-                    try {
-                        urls.add(concat(sourceUrl, path));
-                    } catch (MalformedURLException e) {
-                        log.log(Level.WARNING, "Bad source URL for library: " + sourceUrl);
+                if (!targetFile.exists() && downloading.add(path)) {
+                    List<URL> urls = new ArrayList<>();
+                    for (URL sourceUrl : sources) {
+                        try {
+                            urls.add(concat(sourceUrl, path));
+                        } catch (MalformedURLException e) {
+                            log.log(Level.WARNING, "Bad source URL for asset: " + sourceUrl, e);
+                        }
                     }
-                }
 
-                File tempFile = installer.getDownloader().download(
-                        urls, "", entry.getValue().getSize(), entry.getKey());
-                installer.queue(new FileMover(tempFile, targetFile));
-                log.info("Fetching " + path + " from " + urls);
-                downloading.add(path);
+                    File tempFile = installer.getDownloader().download(urls, "", entry.getValue().getSize(), entry.getKey());
+                    installer.queue(new FileMover(tempFile, targetFile));
+                    log.info("Fetching " + path + " from " + urls);
+                }
+            } catch (InterruptedException e) {
+                log.log(Level.SEVERE, "Failed to download asset: " + entry.getKey(), e);
             }
-        }
+        });
     }
 
     protected void installLibraries(@NonNull Installer installer,
@@ -252,64 +256,64 @@ public abstract class BaseUpdater {
                                     @NonNull List<URL> sources) throws InterruptedException, IOException {
         VersionManifest versionManifest = manifest.getVersionManifest();
 
-        Iterable<Library> allLibraries = versionManifest.getLibraries();
+        // Collect all libraries
+        List<Library> allLibraries = new ArrayList<>();
         for (LoaderManifest loader : manifest.getLoaders().values()) {
-            allLibraries = Iterables.concat(allLibraries, loader.getLibraries());
+            allLibraries.addAll(loader.getLibraries());
         }
+        allLibraries.addAll(versionManifest.getLibraries());
 
-        for (Library library : allLibraries) {
-            if (library.matches(environment)) {
-                checkInterrupted();
+        // Use parallel stream to speed up processing of libraries
+        allLibraries.parallelStream().forEach(library -> {
+            try {
+                if (library.matches(environment)) {
+                    checkInterrupted();
 
-                Library.Artifact artifact = library.getArtifact(environment);
-                String path = artifact.getPath();
+                    Library.Artifact artifact = library.getArtifact(environment);
+                    String path = artifact.getPath();
+                    long size = artifact.getSize() > 0 ? artifact.getSize() : LIBRARY_SIZE_ESTIMATE;
 
-                long size = artifact.getSize();
-                if (size <= 0) size = LIBRARY_SIZE_ESTIMATE;
+                    File targetFile = new File(librariesDir, path);
 
-                File targetFile = new File(librariesDir, path);
+                    if (!targetFile.exists()) {
+                        List<URL> urls = new ArrayList<>();
+                        for (URL sourceUrl : sources) {
+                            try {
+                                urls.add(concat(sourceUrl, path));
+                            } catch (MalformedURLException e) {
+                                log.log(Level.WARNING, "Bad source URL for library: " + sourceUrl, e);
+                            }
+                        }
 
-                if (!targetFile.exists()) {
-                    List<URL> urls = new ArrayList<URL>();
-                    for (URL sourceUrl : sources) {
-                        try {
-                            urls.add(concat(sourceUrl, path));
-                        } catch (MalformedURLException e) {
-                            log.log(Level.WARNING, "Bad source URL for library: " + sourceUrl);
+                        File tempFile = installer.getDownloader().download(urls, "", size, library.getName() + ".jar");
+                        log.info("Fetching " + path + " from " + urls);
+                        installer.queue(new FileMover(tempFile, targetFile));
+                        if (artifact.getSha1() != null) {
+                            installer.queue(new FileVerify(targetFile, library.getName(), artifact.getSha1()));
                         }
                     }
-
-                    File tempFile = installer.getDownloader().download(urls, "", size,
-                            library.getName() + ".jar");
-                    log.info("Fetching " + path + " from " + urls);
-                    installer.queue(new FileMover(tempFile, targetFile));
-                    if (artifact.getSha1() != null) {
-                        installer.queue(new FileVerify(targetFile, library.getName(), artifact.getSha1()));
-                    }
                 }
+            } catch (InterruptedException e) {
+                log.log(Level.SEVERE, "Failed to download library: " + library.getName(), e);
             }
-        }
+        });
 
-        // Use our custom logging config depending on what the manifest specifies
+        // Process logging configuration
         if (versionManifest.getLogging() != null) {
             VersionManifest.LoggingConfig config = versionManifest.getLogging().getClient();
-
             VersionManifest.Artifact file = config.getFile();
             File targetFile = new File(librariesDir, file.getId());
+
             InputStream embeddedConfig = Launcher.class.getResourceAsStream("logging/" + file.getId());
-
             if (embeddedConfig == null) {
-                // No embedded config, just use whatever the server gives us
-                File tempFile = installer.getDownloader().download(url(file.getUrl()), file.getHash(), file.getSize(), file.getId());
-
+                // No embedded config, download from server
+                File tempFile = installer.getDownloader().download(new URL(file.getUrl()), file.getHash(), file.getSize(), file.getId());
                 log.info("Downloading logging config " + file.getId() + " from " + file.getUrl());
                 installer.queue(new FileMover(tempFile, targetFile));
-            } else if (!targetFile.exists() || FileUtils.getShaHash(targetFile).equals(file.getHash())) {
-                // Use our embedded replacement
-
+            } else if (!targetFile.exists() || !FileUtils.getShaHash(targetFile).equals(file.getHash())) {
+                // Use embedded config if it differs
                 Path tempFile = installer.getTempDir().toPath().resolve(file.getId());
                 Files.copy(embeddedConfig, tempFile, StandardCopyOption.REPLACE_EXISTING);
-
                 log.info("Substituting embedded logging config " + file.getId());
                 installer.queue(new FileMover(tempFile.toFile(), targetFile));
             }
