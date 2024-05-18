@@ -8,7 +8,6 @@ package com.skcraft.launcher;
 
 import com.skcraft.concurrency.DefaultProgress;
 import com.skcraft.concurrency.ProgressObservable;
-import com.skcraft.launcher.model.modpack.ManifestInfo;
 import com.skcraft.launcher.model.modpack.PackageList;
 import com.skcraft.launcher.persistence.Persistence;
 import com.skcraft.launcher.util.HttpRequest;
@@ -21,11 +20,14 @@ import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
 
 import static com.skcraft.launcher.LauncherUtils.concat;
 
@@ -111,29 +113,33 @@ public class InstanceList {
             log.info("Enumerating instance list...");
             progress = new DefaultProgress(0, SharedLocale.tr("instanceLoader.loadingLocal"));
 
-            List<Instance> local = new ArrayList<Instance>();
-            List<Instance> remote = new ArrayList<Instance>();
+            List<Instance> local = Collections.synchronizedList(new ArrayList<>());
+            List<Instance> remote = Collections.synchronizedList(new ArrayList<>());
 
+            // Loading local instances
             File[] dirs = launcher.getInstancesDir().listFiles((FileFilter) DirectoryFileFilter.INSTANCE);
             if (dirs != null) {
-                for (File dir : dirs) {
-                    File file = new File(dir, "instance.json");
-                    Instance instance = Persistence.load(file, Instance.class);
-                    instance.setDir(dir);
-                    instance.setName(dir.getName());
-                    instance.setSelected(true);
-                    instance.setLocal(true);
-                    local.add(instance);
-
-                    log.info(instance.getName() + " local instance found at " + dir.getAbsolutePath());
-                }
+                Arrays.stream(dirs).parallel().forEach(dir -> {
+                    try {
+                        File file = new File(dir, "instance.json");
+                        Instance instance = Persistence.load(file, Instance.class);
+                        instance.setDir(dir);
+                        instance.setName(dir.getName());
+                        instance.setSelected(true);
+                        instance.setLocal(true);
+                        local.add(instance);
+                        log.info(instance.getName() + " local instance found at " + dir.getAbsolutePath());
+                    } catch (Exception e) {
+                        log.log(Level.SEVERE, "Error loading instance from " + dir.getAbsolutePath(), e);
+                    }
+                });
             }
 
             progress = new DefaultProgress(0.3, SharedLocale.tr("instanceLoader.checkingRemote"));
 
+            // Loading remote instances
             try {
                 URL packagesURL = launcher.getPackagesURL();
-
                 PackageList packages = HttpRequest
                         .get(packagesURL)
                         .execute()
@@ -145,49 +151,53 @@ public class InstanceList {
                     throw new LauncherException("Update required", SharedLocale.tr("errors.updateRequiredError"));
                 }
 
-                for (ManifestInfo manifest : packages.getPackages()) {
-                    boolean foundLocal = false;
-
-                    for (Instance instance : local) {
+                packages.getPackages().parallelStream().forEach(manifest -> {
+                    boolean foundLocal = local.stream().anyMatch(instance -> {
                         if (instance.getName().equalsIgnoreCase(manifest.getName())) {
-                            foundLocal = true;
-
                             instance.setTitle(manifest.getTitle());
                             instance.setPriority(manifest.getPriority());
-                            URL url = concat(packagesURL, manifest.getLocation());
-                            instance.setManifestURL(url);
+                            try {
+                                URL url = concat(packagesURL, manifest.getLocation());
+                                instance.setManifestURL(url);
+                                log.info("(" + instance.getName() + ").setManifestURL(" + url + ")");
 
-                            log.info("(" + instance.getName() + ").setManifestURL(" + url + ")");
-
-                            // Check if an update is required
-                            if (instance.getVersion() == null || !instance.getVersion().equals(manifest.getVersion())) {
-                                instance.setUpdatePending(true);
-                                instance.setVersion(manifest.getVersion());
-                                Persistence.commitAndForget(instance);
-                                log.info(instance.getName() + " requires an update to " + manifest.getVersion());
+                                if (instance.getVersion() == null || !instance.getVersion().equals(manifest.getVersion())) {
+                                    instance.setUpdatePending(true);
+                                    instance.setVersion(manifest.getVersion());
+                                    Persistence.commitAndForget(instance);
+                                    log.info(instance.getName() + " requires an update to " + manifest.getVersion());
+                                }
+                            } catch (MalformedURLException e) {
+                                log.log(Level.WARNING, "Invalid manifest URL for " + manifest.getName(), e);
                             }
+                            return true;
                         }
-                    }
+                        return false;
+                    });
 
                     if (!foundLocal) {
-                        File dir = new File(launcher.getInstancesDir(), manifest.getName());
-                        File file = new File(dir, "instance.json");
-                        Instance instance = Persistence.load(file, Instance.class);
-                        instance.setDir(dir);
-                        instance.setTitle(manifest.getTitle());
-                        instance.setName(manifest.getName());
-                        instance.setVersion(manifest.getVersion());
-                        instance.setPriority(manifest.getPriority());
-                        instance.setSelected(false);
-                        instance.setManifestURL(concat(packagesURL, manifest.getLocation()));
-                        instance.setUpdatePending(true);
-                        instance.setLocal(false);
-                        remote.add(instance);
+                        try {
+                            File dir = new File(launcher.getInstancesDir(), manifest.getName());
+                            File file = new File(dir, "instance.json");
+                            Instance instance = Persistence.load(file, Instance.class);
+                            instance.setDir(dir);
+                            instance.setTitle(manifest.getTitle());
+                            instance.setName(manifest.getName());
+                            instance.setVersion(manifest.getVersion());
+                            instance.setPriority(manifest.getPriority());
+                            instance.setSelected(false);
+                            instance.setManifestURL(concat(packagesURL, manifest.getLocation()));
+                            instance.setUpdatePending(true);
+                            instance.setLocal(false);
+                            remote.add(instance);
 
-                        log.info("Available remote instance: '" + instance.getName() +
-                                "' at version " + instance.getVersion());
+                            log.info("Available remote instance: '" + instance.getName() +
+                                    "' at version " + instance.getVersion());
+                        } catch (Exception e) {
+                            log.log(Level.SEVERE, "Error loading remote instance " + manifest.getName(), e);
+                        }
                     }
-                }
+                });
             } catch (IOException e) {
                 throw new IOException("The list of modpacks could not be downloaded.", e);
             } finally {
@@ -195,13 +205,13 @@ public class InstanceList {
                     instances.clear();
                     instances.addAll(local);
                     instances.addAll(remote);
-
                     log.info(instances.size() + " instance(s) enumerated.");
                 }
             }
 
             return InstanceList.this;
         }
+
 
         @Override
         public double getProgress() {
